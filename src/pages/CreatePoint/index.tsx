@@ -8,6 +8,7 @@ import { LeafletMouseEvent} from 'leaflet';
 import api from '../../services/api';
 import UFsApi from '../../services/ibgeEstados';
 import CityApi from '../../services/igbeCidades';
+import Dropzone from '../../components/dropzone';
 
 //estado para um array ou objeto é preciso criar um interface
 interface ItemsData{
@@ -41,6 +42,8 @@ const CreatePoints:React.FC = () =>{
     const [selectedItems, setSelectedItems] = useState<number[]>([]);
     const [selectedPosition, setSelectedPosition] = useState<[number, number]>([0,0]);
     const [initialPosition, setInitialPosition] = useState<[number, number]>([0,0]);
+    const [selectedFile, setSelectedFile] = useState<File>();
+
     const histoy = useHistory();
 
         //pegando os dados da localização atual do computador
@@ -49,7 +52,7 @@ const CreatePoints:React.FC = () =>{
                 const { latitude, longitude } = position.coords;
                 setInitialPosition([latitude,longitude]);
             });
-        })
+        },[])
 
         //pegando os dados dos items salvos no banco
         useEffect(()=>{
@@ -116,22 +119,39 @@ const CreatePoints:React.FC = () =>{
 
         async function handleSubmit(event: FormEvent){
             event.preventDefault();
+
             const { Whatsapp, email, name} = formData;
             const uf = selectedUf;
             const city = selectedCity;
             const [latitude, longitude] = selectedPosition;
             const items = selectedItems;
+            
+            const data = new FormData();
+            
+            data.append('Whatsapp', Whatsapp);
+            data.append('email', email);
+            data.append('name', name);
+            data.append('uf', uf);
+            data.append('city', city);
+            data.append('latitude', String(latitude));
+            data.append('longitude', String(longitude));
+            data.append('items', items.join(','));
+           
+            if(selectedFile){
+                data.append('image', selectedFile);
+            }
 
-            const data = {
-                Whatsapp, 
-                email, 
-                name,
-                uf,
-                city,
-                latitude,
-                longitude,
-                items
-            };
+
+            // const data = {
+            //     Whatsapp, 
+            //     email, 
+            //     name,
+            //     uf,
+            //     city,
+            //     latitude,
+            //     longitude,
+            //     items
+            // };
 
             await api.post('points', data); 
             alert('Ponto de coleta criado');
@@ -149,6 +169,8 @@ const CreatePoints:React.FC = () =>{
 
             <form onSubmit={handleSubmit}>
                 <h1>Cadastro do <br/> ponto de coleta</h1>
+
+                <Dropzone onFileUpload={setSelectedFile}/>
 
                 <fieldset>
                     <legend>
@@ -242,7 +264,7 @@ const CreatePoints:React.FC = () =>{
                     <ul className="items-grid">
                         {items.map(item => (
                             <li 
-                            onClick={()=>handleSelectedItem(item.id)} 
+                            onClick={ ()=>handleSelectedItem(item.id) } 
                             key={item.id}
                             className={selectedItems.includes(item.id) ? 'selected': ''}
                             >
